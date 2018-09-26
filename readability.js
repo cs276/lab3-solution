@@ -1,23 +1,54 @@
 const fs = require("fs");
+const md5File = require('md5-file');
 const sqlite3 = require('sqlite3');
 const Tokenizer = require('tokenize-text');
 const tokenize = new Tokenizer();
 const tokenizeEnglish = require("tokenize-english")(tokenize);
 
+let db = new sqlite3.Database('texts.db', (err) => {
+    if (err) {
+        return console.error(err.message);
+    }
+});
+
 function readability(filename, callback) {
-    fs.readFile(filename, "utf8", (err, contents) => {
-        if (err) throw err;
-        const text = contents.split(/\n/).join(" ");
-        const data = {
-            filename: filename,
-            letters: countChars(text, /[A-Za-z]/),
-            numbers: countChars(text, /[0-9]/),
-            words: countWords(text),
-            sentences: countSentences(text)
-        };
-        const cl = colemanLiau(data);
-        const ari = automatedReadabilityIndex(data);
-        callback({ cl, ari, ...data });
+    const filemd5 = md5File.sync(filename);
+
+    let sql = `SELECT * FROM texts WHERE md5 = ?`;
+
+    db.get(sql, filemd5, (err, row) => {
+        if (err) {
+            return console.error(err.message);
+        }
+        if (row) {
+            callback({
+                cl: row["colemanliau"],
+                ari: row["ari"],
+                filename: row["filename"],
+                letters: row["characters"],
+                numbers: 0,
+                words: row["words"],
+                sentences: row["sentences"],
+                hash: 0,
+            });
+        }
+        else {
+          fs.readFile(filename, "utf8", (err, contents) => {
+              if (err) throw err;
+              const text = contents.split(/\n/).join(" ");
+              const data = {
+                  filename: filename,
+                  letters: countChars(text, /[A-Za-z]/),
+                  numbers: countChars(text, /[0-9]/),
+                  words: countWords(text),
+                  sentences: countSentences(text),
+                  hash: filemd5
+              };
+              const cl = colemanLiau(data);
+              const ari = automatedReadabilityIndex(data);
+              callback({ cl, ari, ...data });
+          });
+        }
     });
 }
 
@@ -57,23 +88,6 @@ function automatedReadabilityIndex(data) {
         - 21.43;
 }
 
-let db = new sqlite3.Database('texts.db', (err) => {
-    if (err) {
-        return console.error(err.message);
-    }
-});
-
-readability(process.argv[2], data => {
-    db.run(`INSERT INTO texts (filename, words, characters, sentences, colemanliau, ari) VALUES (?, ?, ?, ?, ?, ?)`,
-            [data["filename"], data["words"], data["letters"] + data["numbers"], data["sentences"], data["cl"].toFixed(3), data["ari"].toFixed(3)],
-            err => {
-                if (err) {
-                    return console.error(err.message);
-                }
-    });
-    report(data);
-});
-
 function report(data) {
     console.log(`REPORT for ${data["filename"]}`);
     let chars = data["letters"] + data["numbers"];
@@ -81,6 +95,19 @@ function report(data) {
     console.log(`${data["words"]} words`);
     console.log(`${data["sentences"]} sentences`);
     console.log(`------------------`);
-    console.log(`Coleman-Liau Score: ${data["cl"].toFixed(3)}`);
-    console.log(`Automated Readability Index: ${data["ari"].toFixed(3)}`);
+    console.log(`Coleman-Liau Score: ${data["cl"]}`);
+    console.log(`Automated Readability Index: ${data["ari"]}`);
 }
+
+readability(process.argv[2], data => {
+    if(data["hash"] != 0) {
+      db.run(`INSERT INTO texts (filename, words, characters, sentences, md5, colemanliau, ari) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              [data["filename"], data["words"], data["letters"] + data["numbers"], data["sentences"], data["hash"], data["cl"].toFixed(3), data["ari"].toFixed(3)],
+              err => {
+                  if (err) {
+                      return console.error(err.message);
+                  }
+      });
+    }
+    report(data);
+});
