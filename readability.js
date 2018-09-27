@@ -1,9 +1,9 @@
-const fs = require("fs");
+const fs = require('fs');
 const md5File = require('md5-file');
 const sqlite3 = require('sqlite3');
 const Tokenizer = require('tokenize-text');
 const tokenize = new Tokenizer();
-const tokenizeEnglish = require("tokenize-english")(tokenize);
+const tokenizeEnglish = require('tokenize-english')(tokenize);
 
 let db = new sqlite3.Database('texts.db', (err) => {
     if (err) {
@@ -22,20 +22,20 @@ function readability(filename, callback) {
         }
         if (row) {
             callback({
-                cl: row["colemanliau"],
-                ari: row["ari"],
-                filename: row["filename"],
-                letters: row["characters"],
+                cl: row['colemanliau'],
+                ari: row['ari'],
+                filename: row['filename'],
+                letters: row['characters'],
                 numbers: 0,
-                words: row["words"],
-                sentences: row["sentences"],
+                words: row['words'],
+                sentences: row['sentences'],
                 hash: 0,
             });
         }
         else {
-          fs.readFile(filename, "utf8", (err, contents) => {
+          fs.readFile(filename, 'utf8', (err, contents) => {
               if (err) throw err;
-              const text = contents.split(/\n/).join(" ");
+              const text = contents.split(/\n/).join(' ');
               const data = {
                   filename: filename,
                   letters: countChars(text, /[A-Za-z]/),
@@ -89,20 +89,20 @@ function automatedReadabilityIndex(data) {
 }
 
 function report(data) {
-    console.log(`REPORT for ${data["filename"]}`);
-    let chars = data["letters"] + data["numbers"];
+    console.log(`REPORT for ${data['filename']}`);
+    let chars = data['letters'] + data['numbers'];
     console.log(`${chars} characters`);
-    console.log(`${data["words"]} words`);
-    console.log(`${data["sentences"]} sentences`);
+    console.log(`${data['words']} words`);
+    console.log(`${data['sentences']} sentences`);
     console.log(`------------------`);
-    console.log(`Coleman-Liau Score: ${data["cl"]}`);
-    console.log(`Automated Readability Index: ${data["ari"]}`);
+    console.log(`Coleman-Liau Score: ${data['cl']}`);
+    console.log(`Automated Readability Index: ${data['ari']}`);
 }
 
 readability(process.argv[2], data => {
-    if(data["hash"] != 0) {
+    if(data['hash'] != 0) {
       db.run(`INSERT INTO texts (filename, words, characters, sentences, md5, colemanliau, ari) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-              [data["filename"], data["words"], data["letters"] + data["numbers"], data["sentences"], data["hash"], data["cl"].toFixed(3), data["ari"].toFixed(3)],
+              [data['filename'], data['words'], data['letters'] + data['numbers'], data['sentences'], data['hash'], data['cl'].toFixed(3), data['ari'].toFixed(3)],
               err => {
                   if (err) {
                       return console.error(err.message);
