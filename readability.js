@@ -147,7 +147,8 @@ module.exports = {
 // If run with node ./readability.js (as opposed to require('./readability'))
 if (require.main === module) {
     if (process.argv.length !== 3) {
-        process.exit('Usage: node readability.js FILENAME')
+        console.error('Usage: node readability.js FILENAME')
+        process.exit(1)
     }
 
     const dataFile = process.argv[2]

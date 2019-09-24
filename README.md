@@ -2,7 +2,8 @@
 
 ## Prerequisites
 
-Run `npm i` to install all dependencies.
+* Run `npm i` to install all dependencies.
+* Run `cp results.csv.example results.csv` to create the CSV file used for results
 
 ## Usage
 
