@@ -53,10 +53,10 @@ function parseCSV(callback) {
     const rows = []
 
     // Parse CSV
-    const csvParser = fastCSV.parseFile(resultsFile, {headers: true})
+    fastCSV.parseFile(resultsFile, {headers: true})
 
     // Exit on error
-    csvParser.on('error', (err) => { throw err })
+    .on('error', (err) => { throw err })
 
     // Handle each row until we find hash or the last row
     .on('data', (row) => {
